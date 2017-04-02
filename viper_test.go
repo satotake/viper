@@ -1152,3 +1152,31 @@ func BenchmarkGetBoolFromMap(b *testing.B) {
 		}
 	}
 }
+
+func TestCurrentMergeInConfig(t *testing.T) {
+	root, config, cleanup := initDirs(t)
+	defer cleanup()
+
+	v := New()
+	v.SetConfigName(config)
+	v.SetDefault(`key`, `default`)
+
+	entries, err := ioutil.ReadDir(root)
+	for _, e := range entries {
+		if e.IsDir() {
+			v.AddConfigPath(e.Name())
+		}
+	}
+
+	err = v.ReadInConfig()
+	assert.Nil(t, err)
+
+	src1 := v.configPaths[1] + "/" + config + ".toml"
+	v.SetConfigFile(src1)
+
+	src2 := v.configPaths[2] + "/" + config + ".toml"
+	v.SetConfigFile(src2)
+
+	err = v.MergeInConfig()
+	assert.Equal(t, `value is `+path.Base(v.configPaths[2]), v.GetString(`key`))
+}
